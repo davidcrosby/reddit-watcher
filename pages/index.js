@@ -1,31 +1,9 @@
 import * as React from 'react';
 import * as d3 from 'd3';
 import { Element } from 'react-faux-dom';
-import DataFetcher from '../DataFetcher.js';
+import { toRGB } from '../utils/colors.js';
 
-function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
-
-function toRGB(str) {
-  let hash = 0;
-  if (str.length === 0) return hash;
-  for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      hash = hash & hash;
-  }
-  let rgb = [0, 0, 0];
-  for (let i = 0; i < 3; i++) {
-      const value = (hash >> (i * 8)) & 255;
-      rgb[i] = value;
-  }
-  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-}
+import fetch from 'isomorphic-unfetch';
 
 class Viz extends React.Component {
   constructor(props) {
@@ -35,6 +13,27 @@ class Viz extends React.Component {
     }
   }
 
+  async startUpdates() {
+    let ret = await fetch('http://localhost:3000/api/update');
+    const rett = await ret.json();
+    console.log(rett);
+    this.setState({
+      subredditPostCount: rett
+    });
+    setTimeout(() => this.startUpdates(), 1000);
+  }
+
+  componentDidMount() {
+    this.setState({
+      isMounted: true
+    }, () => this.startUpdates())
+  }
+
+  componentWillUnmount() {
+    this.setState({
+      isMounted: false
+    })
+  }
   drawChart() {
     let keys = Object.keys(this.state.subredditPostCount);
     let pairs = Array(keys.length);
@@ -76,8 +75,9 @@ class Viz extends React.Component {
       .append("text")
       .attr("x", (d, i) => 10 + counts[i]*widthPerPost)
       .attr("y", (d, i) => i * yOffset + (yOffset/2))
-      .text((d, i) => d)
-
+      .text((d, i) => {
+        return `${d} (${this.state.subredditPostCount[keys[i]]})`
+      })
     return el.toReact();
   }
 
@@ -90,43 +90,19 @@ class Viz extends React.Component {
   }
 }
 
-
 export default class extends React.Component {
   constructor(props) {
     super(props);
-    this.dataFetcher = new DataFetcher(3000 /* 3 seconds in miliseconds */),
     this.state = {
       subredditPostCount: {}
     }
   }
 
-  startUpdates() {
-    this.dataFetcher.toRepeat((updatedCount) => {
-      // avoid setting state on an unmounted component
-      if(this.state.isMounted){
-        this.setState({
-          subredditPostCount: updatedCount,
-        })
-      }
-    }, 1000 /* timeout in ms */);
-  }
-
-  componentDidMount() {
-    this.setState({
-      isMounted: true
-    }, () => this.startUpdates())
-  }
-
-  componentWillUnmount() {
-    this.setState({
-      isMounted: false
-    })
-  }
-
   render() {
     return (
       <div>
-        <Viz subredditPostCount={this.dataFetcher.subredditPostCount}/>
+        <h1>Number of posts on /r/popular/new</h1>
+        <Viz subredditPostCount={this.state.subredditPostCount}/>
       </div>
     )
   }

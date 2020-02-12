@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('../config.json');
 const snoowrap = require('snoowrap');
 
 function sleep(ms) {
@@ -6,15 +6,16 @@ function sleep(ms) {
 }
 
 export default class DataFetcher {
-  constructor(delay /* min delay between requests, miliseconds */) {
+  constructor(delay=1000 /* min delay between requests, miliseconds */) {
     this.subredditPostCount = {};
     this.seen = {};
+    this.delay = delay;
     this.reddit = new snoowrap({
       userAgent: config.userAgent,
       clientId: config.clientId,
       clientSecret: config.clientSecret,
       refreshToken: config.refreshToken,
-      requestDelay: delay / 2
+      requestDelay: this.delay
     });
   }
 
@@ -23,9 +24,7 @@ export default class DataFetcher {
     try {
       rout = await this.reddit.getSubreddit('all').getNew();
     } catch(err) {
-      if(err.code == "ETIMEDOUT") {
-        console.log(err);
-      }
+      console.log(err);
     }
     return rout;
   }
@@ -51,14 +50,10 @@ export default class DataFetcher {
     }
   }
 
-  async toRepeat(callback, timeOut) {
+  async toRepeat(timeOut=this.delay) {
+    console.log(this.subredditPostCount);
     this.updateSubredditPostCount();
-    try {
-      callback(this.subredditPostCount);
-    } catch(e) {
-      console.log(e);
-    }
-    setTimeout(() => this.toRepeat(callback, timeOut), timeOut);
+    setTimeout(() => this.toRepeat(timeOut), timeOut);
   }
 }
 
