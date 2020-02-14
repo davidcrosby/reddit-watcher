@@ -9,7 +9,8 @@ class Viz extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      subredditPostCount: props.subredditPostCount
+      subredditPostCount: props.subredditPostCount,
+      timeLeft: 0
     }
   }
 
@@ -18,7 +19,8 @@ class Viz extends React.Component {
     const rett = await ret.json();
     console.log(rett);
     this.setState({
-      subredditPostCount: rett
+      subredditPostCount: rett.subredditPostCount,
+      timeLeft: rett.timeLeft
     });
     setTimeout(() => this.startUpdates(), 1000);
   }
@@ -109,16 +111,23 @@ class Viz extends React.Component {
   }
 
   render() {
+    const bePatientMessage =
+      `Nobody has been here recently, loading, please be patient!`;
     let [keys, counts] = this.getCountsAndKeys();
-    const msg = `There are ${keys.length} subreddits represented over ${d3.sum(counts)} submissions`;
+    const statMsg = `There are ${keys.length} subreddits represented over ${d3.sum(counts)} submissions`;
+    const resetMsg = `Reset in ${Math.floor(this.state.timeLeft/1000)} seconds.`
     const vizHeaderStyle = {
       'position': 'relative',
       'left': '20%'
     }
     return (
       <div>
-        <h3 style={vizHeaderStyle}>{msg}</h3>
-        {this.drawChart()}
+        <h1 style={vizHeaderStyle}>Number of posts on /r/popular/new</h1>
+        <h3 style={vizHeaderStyle}>{statMsg}</h3>
+        <h3 style={vizHeaderStyle}>{resetMsg}</h3>
+         { (keys.length == 0) ? <h3 style={vizHeaderStyle}>{bePatientMessage}</h3> :
+           <div>{this.drawChart()}</div>
+         }
       </div>
     )
   }
@@ -134,18 +143,13 @@ export default class extends React.Component {
 
   render() {
 
-    const headerStyle = {
-      'position': 'absolute', 
-      'left': '20%'
-    }
     const containerStyle = {
       'position': 'absolute',
-      'top': '10%'
+      'top': '0%'
     }
 
     return (
       <div>
-        <h1 style={headerStyle}>Number of posts on /r/popular/new</h1>
         <div style={containerStyle}>
           <Viz subredditPostCount={this.state.subredditPostCount}/>
         </div>

@@ -6,10 +6,13 @@ function sleep(ms) {
 }
 
 export default class DataFetcher {
-  constructor(delay=1000 /* min delay between requests, miliseconds */) {
-    this.subredditPostCount = {};
-    this.seen = {};
+  constructor(
+    delay=1000 /* min delay between requests, miliseconds */,
+    resetTime=300 * 1000 /* interval between data reset */
+  ) {
+    this.resetData();
     this.delay = delay;
+    this.resetTime = resetTime;
     this.reddit = new snoowrap({
       userAgent: config.userAgent,
       clientId: config.clientId,
@@ -17,6 +20,12 @@ export default class DataFetcher {
       refreshToken: config.refreshToken,
       requestDelay: this.delay
     });
+  }
+
+  resetData() {
+    this.subredditPostCount = {};
+    this.seen = {};
+    this.createdAt = new Date().getTime();
   }
 
   fetchData = async function() {
@@ -30,6 +39,12 @@ export default class DataFetcher {
   }
 
   updateSubredditPostCount() {
+    const timeDiff = (new Date().getTime()) - this.createdAt;
+    if(timeDiff > this.resetTime) {
+      this.resetData();
+      return;
+    }
+    this.timeLeft = this.resetTime - timeDiff;
     try {
       this.fetchData().then((data) => {
         data.forEach((post) => {

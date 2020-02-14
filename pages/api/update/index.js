@@ -7,5 +7,9 @@ export default (req, res) => {
     DF.toRepeat();
     process.env.DF_RUNNING=true;
   }
-  return res.status(200).json(DF.subredditPostCount);
+  let json_res = {
+    subredditPostCount: DF.subredditPostCount,
+    timeLeft: DF.timeLeft
+  }
+  return res.status(200).json(json_res);
 }
